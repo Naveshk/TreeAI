@@ -9,11 +9,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api.error_handlers import register_error_handlers
-from app.api.routes import datasets, health, samples
-from app.api.upload_limit import register_upload_limit
+from app.api.routes import datasets, health, models, samples
+from app.api.upload_limit import UploadLimitMiddleware
 from app.config import Settings, get_settings
 from app.storage.database import init_db
 from app.storage.files import FileStore
+from app.storage.model_store import ModelStore
 
 API_PREFIX = "/api"
 
@@ -33,12 +34,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
     app.state.settings = settings
     app.state.file_store = file_store
+    app.state.model_store = ModelStore(file_store)
 
     register_error_handlers(app)
-    register_upload_limit(app, settings.max_upload_bytes)
+    app.add_middleware(UploadLimitMiddleware, max_upload_bytes=settings.max_upload_bytes)
     app.include_router(health.router, prefix=API_PREFIX)
     app.include_router(datasets.router, prefix=API_PREFIX)
     app.include_router(samples.router, prefix=API_PREFIX)
+    app.include_router(models.router, prefix=API_PREFIX)
     return app
 
 

@@ -1,12 +1,11 @@
-# TreeAI – project rules for Claude Code
+# TreeAI (product: TreeMind AI) – project rules for Claude Code
 
-TreeAI: upload a CSV → explore → train a scikit-learn Random Forest → evaluate on held-out
+TreeMind AI: upload a CSV → explore → train a scikit-learn Random Forest → evaluate on held-out
 data → predict → inspect the real decision trees inside the forest and the real prediction
 path for a given input.
 
 ## Working agreement
-- Work milestone by milestone (M0–M9, see "Milestones"). Stop after each milestone, report
-  results (tests, type check, build), and wait for explicit approval before the next one.
+- Report results (tests, type check, build) after each piece of work.
 - Explain important commands before running them. No `sudo`, no system Python changes,
   no global npm installs, no destructive commands.
 - Never overwrite an existing file without reading it first.
@@ -19,11 +18,12 @@ path for a given input.
   prediction-path highlighting.
 - Out of scope unless approved: Docker/nginx, auth, optional features (feature importance,
   ROC, histograms, OOB, downloads, batch prediction, model comparison, background jobs).
-- No new dependency without approval. Approved plan:
-  - Backend: fastapi, uvicorn, python-multipart (M2), pandas, numpy, scikit-learn.
+- No new dependency without approval. Installed:
+  - Backend: fastapi, uvicorn, python-multipart, pandas, numpy, scikit-learn.
     Dev: pytest, httpx, ruff. SQLite via the standard-library `sqlite3` (no ORM).
-  - Frontend: react, react-dom, react-router (M3), @tanstack/react-query (M3), d3 (M8),
-    recharts (M5). Dev: vite, typescript, tailwindcss, vitest, jsdom, Testing Library.
+  - Frontend: react, react-dom, react-router, @tanstack/react-query, d3-hierarchy, d3-zoom,
+    d3-selection (+ @types). No chart library: small SVG/CSS bars render real API data.
+    Dev: vite, typescript, tailwindcss, vitest, jsdom, Testing Library.
 
 ## ML rules (non-negotiable)
 - Train ONLY `RandomForestClassifier` / `RandomForestRegressor`. Never train a standalone
@@ -33,7 +33,10 @@ path for a given input.
 - Prevent leakage: drop rows with missing target → `train_test_split` FIRST (stratified for
   classification) → fit the pipeline on the training split only → metrics on the test split only.
 - Preprocessing: numeric → `SimpleImputer(median)`; categorical → `SimpleImputer(most_frequent)`
-  + `OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)`.
+  + `OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)`; both imputers use
+  `keep_empty_features=True` so transformed column order == input schema order.
+- Categorical/boolean features and classification labels are normalised to strings with
+  `ml/preprocessing.to_category_value` at training AND inference (`ml/inputs.py`).
 - Prediction paths come from `tree.decision_path()` / `tree.apply()` on the pipeline-transformed
   input. Never recompute split directions yourself (sklearn compares in float32).
 - Per-tree class labels: map tree outputs through `rf.classes_` (trees predict class indices).
@@ -58,8 +61,14 @@ path for a given input.
   share one ingestion pipeline (`DatasetService._ingest_tmp_file`).
 - File/DB consistency: write files first, then DB rows; on delete remove DB rows first,
   then files. Clean up on failure. No recovery system (documented in README).
-- Frontend: URL holds workflow state (`/datasets/:id`, `/models/:id/...`). D3 computes layout,
-  React renders SVG. No global state library.
+- Frontend: URL holds workflow state (`/datasets/:id`, `/datasets/:id/train`, `/models/:id`,
+  `/models/:id/predict`, `/models/:id/forest`, `?tab=`, `?offset=&limit=`, `?tree=`).
+  All server data goes through `src/hooks/queries.ts` (TanStack Query) and `src/api/`;
+  components never call `fetch`. D3 computes layout, React renders SVG. No global state lib.
+- Workspace nav items are links only when their prerequisite exists (dataset / ready model);
+  otherwise they are `aria-disabled` text. Never add placeholder buttons or fake data.
+- Upload size: `api/upload_limit.UploadLimitMiddleware` (ASGI, counts streamed bytes) +
+  exact per-file check in `DatasetService`. Frontend pre-checks 50 MB only.
 - Dev: Vite proxies `/api` → `http://localhost:8000`. No CORS middleware unless needed.
 - Runtime data lives in `data/` (gitignored): SQLite DB, datasets, model artifacts.
   Files are named by UUID, never by user-supplied filenames.
@@ -89,6 +98,5 @@ M0 setup · M1 storage + error envelope · M2 dataset backend · M3 frontend she
 M4 training backend · M5 config + evaluation UI · M6 prediction · M7 forest backend ·
 M8 Forest Explorer UI · M9 hardening + README.
 
-Milestones are grouped into approved batches (Batch A = M1 + M2). M4 adds
-`ModelRepository` / `EvaluationRepository` (tables already exist in migration 1).
-Sample datasets: Iris, Wine, Diabetes only (Titanic deferred).
+Status: M0–M9 implemented (Batch A committed; M3–M9 built autonomously, see
+PROJECT_PROGRESS.md). Sample datasets: Iris, Wine, Diabetes only (Titanic deferred).

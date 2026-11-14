@@ -29,3 +29,30 @@ class ColumnRecord:
     inferred_kind: str
     missing_count: int
     unique_count: int
+
+
+@dataclass(frozen=True)
+class ModelRecord:
+    id: str
+    dataset_id: str
+    name: str
+    task_type: str  # 'classification' | 'regression'
+    target_column: str
+    feature_columns: list[str]
+    column_types: dict[str, str]
+    hyperparameters: dict
+    test_size: float
+    random_state: int
+    stratified: bool
+    status: str  # 'training' | 'ready' | 'failed'
+    created_at: str
+    error_message: str | None = None
+    classes: list[str] | None = None
+    input_schema: list[dict] | None = None
+    n_train: int | None = None
+    n_test: int | None = None
+    rows_dropped_missing_target: int | None = None
+    artifact_path: str | None = None
+    artifact_sha256: str | None = None
+    sklearn_version: str | None = None
+    train_duration_ms: int | None = None

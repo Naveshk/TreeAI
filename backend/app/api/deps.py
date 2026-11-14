@@ -8,8 +8,11 @@ from fastapi import Depends, Request
 
 from app.config import Settings
 from app.services.dataset_service import DatasetService
+from app.services.inference_service import InferenceService
+from app.services.model_service import ModelService
 from app.storage.database import connect
 from app.storage.files import FileStore
+from app.storage.model_store import ModelStore
 
 
 def get_settings_dep(request: Request) -> Settings:
@@ -41,3 +44,22 @@ def get_dataset_service(conn: DbDep, files: FileStoreDep, settings: SettingsDep)
 
 
 DatasetServiceDep = Annotated[DatasetService, Depends(get_dataset_service)]
+
+
+def get_model_store(request: Request) -> ModelStore:
+    return request.app.state.model_store
+
+
+ModelStoreDep = Annotated[ModelStore, Depends(get_model_store)]
+
+
+def get_model_service(conn: DbDep, files: FileStoreDep, store: ModelStoreDep) -> ModelService:
+    return ModelService(conn, files, store)
+
+
+def get_inference_service(conn: DbDep, store: ModelStoreDep) -> InferenceService:
+    return InferenceService(conn, store)
+
+
+ModelServiceDep = Annotated[ModelService, Depends(get_model_service)]
+InferenceServiceDep = Annotated[InferenceService, Depends(get_inference_service)]

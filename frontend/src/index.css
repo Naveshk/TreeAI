@@ -1,1 +1,43 @@
 @import "tailwindcss";
+
+/* TreeMind AI design tokens: one dark navy + teal theme. */
+@theme {
+  --color-navy-950: #070c18;
+  --color-navy-900: #0b1220;
+  --color-navy-850: #0e1627;
+  --color-navy-800: #111a2e;
+  --color-navy-700: #16213a;
+  --color-navy-600: #24314f;
+  --color-navy-500: #34446a;
+  --color-ink: #e6edf7;
+  --color-ink-muted: #a3b1c8;
+  --color-ink-faint: #74839f;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  scrollbar-color: var(--color-navy-500) transparent;
+  scrollbar-width: thin;
+}
+
+body {
+  @apply bg-navy-900 font-sans text-ink antialiased;
+}
+
+/* Visible, consistent keyboard focus everywhere. */
+:focus-visible {
+  outline: 2px solid var(--color-teal-300);
+  outline-offset: 2px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

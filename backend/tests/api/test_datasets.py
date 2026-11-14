@@ -353,6 +353,61 @@ def test_huge_content_length_rejected_before_parsing(
     assert_no_leftovers(small_settings)
 
 
+def test_oversized_chunked_upload_without_content_length_is_rejected(
+    small_client: TestClient, small_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def must_not_run(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("oversized chunked upload reached the service")
+
+    monkeypatch.setattr(DatasetService, "create_from_upload", must_not_run)
+    boundary = "XyZ"
+    body = (
+        (
+            f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="f.csv"\r\n'
+            "Content-Type: text/csv\r\n\r\n"
+        ).encode()
+        + b"a,b\n"
+        + b"1,2\n" * 50_000
+        + f"\r\n--{boundary}--\r\n".encode()
+    )
+    # Note: TestClient buffers the iterable before calling the app, so this test checks the
+    # rejection itself; early stopping on a real server is verified manually (see README).
+
+    def chunks():
+        for i in range(0, len(body), 8192):
+            yield body[i : i + 8192]
+
+    response = small_client.post(
+        "/api/datasets",
+        content=chunks(),
+        headers={"content-type": f"multipart/form-data; boundary={boundary}"},
+    )
+
+    assert response.status_code == 413
+    assert response.json()["error"]["code"] == "FILE_TOO_LARGE"
+    assert_no_leftovers(small_settings)
+
+
+def test_small_chunked_upload_still_works(small_client: TestClient) -> None:
+    boundary = "XyZ"
+    body = (
+        (
+            f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="f.csv"\r\n'
+            "Content-Type: text/csv\r\n\r\n"
+        ).encode()
+        + b"a,b\n1,2\n"
+        + f"\r\n--{boundary}--\r\n".encode()
+    )
+
+    response = small_client.post(
+        "/api/datasets",
+        content=iter([body[:20], body[20:]]),
+        headers={"content-type": f"multipart/form-data; boundary={boundary}"},
+    )
+
+    assert response.status_code == 201, response.text
+
+
 # ---- failures after validation (cleanup of tmp and dataset files) -----------------------------
 def test_database_failure_cleans_up_files(
     small_client: TestClient, small_settings: Settings, monkeypatch: pytest.MonkeyPatch

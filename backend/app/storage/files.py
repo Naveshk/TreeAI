@@ -95,6 +95,9 @@ class FileStore:
     def model_dir(self, model_id: str) -> Path:
         return self._inside(self.models_dir, model_id)
 
+    def model_artifact_path(self, model_id: str) -> Path:
+        return self.model_dir(model_id) / MODEL_ARTIFACT
+
     def relative(self, path: Path) -> str:
         """Path as stored in the database: relative to the data directory, POSIX style."""
         return path.resolve().relative_to(self.data_dir).as_posix()
