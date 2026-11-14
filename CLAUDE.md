@@ -48,6 +48,16 @@ path for a given input.
   `ml/` contains pure pandas/sklearn logic: no FastAPI, no DB imports.
 - All routes live under `/api`. Errors use one envelope:
   `{"error": {"code": "...", "message": "...", "details": {...}}}`.
+  Raise `app.errors.AppError` subclasses (no FastAPI imports, usable from any layer);
+  `app/api/error_handlers.py` converts them. Unhandled exceptions → 500 `INTERNAL_ERROR`
+  with a generic message; details only in the server log.
+- SQLite schema changes: append a new entry to `MIGRATIONS` in `app/storage/schema.py`.
+  Never edit a released migration. No BEGIN/COMMIT/PRAGMA inside migrations.
+- CSV parsing goes only through `app/ml/csv_loader.parse_csv_text` with the encoding and
+  delimiter recorded at upload (`load_dataset_frame` for full datasets). Uploads and samples
+  share one ingestion pipeline (`DatasetService._ingest_tmp_file`).
+- File/DB consistency: write files first, then DB rows; on delete remove DB rows first,
+  then files. Clean up on failure. No recovery system (documented in README).
 - Frontend: URL holds workflow state (`/datasets/:id`, `/models/:id/...`). D3 computes layout,
   React renders SVG. No global state library.
 - Dev: Vite proxies `/api` → `http://localhost:8000`. No CORS middleware unless needed.
@@ -78,3 +88,7 @@ npm run build
 M0 setup · M1 storage + error envelope · M2 dataset backend · M3 frontend shell + upload/explorer ·
 M4 training backend · M5 config + evaluation UI · M6 prediction · M7 forest backend ·
 M8 Forest Explorer UI · M9 hardening + README.
+
+Milestones are grouped into approved batches (Batch A = M1 + M2). M4 adds
+`ModelRepository` / `EvaluationRepository` (tables already exist in migration 1).
+Sample datasets: Iris, Wine, Diabetes only (Titanic deferred).
