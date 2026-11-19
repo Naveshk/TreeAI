@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { useLocation } from "react-router";
 
 import { HeroVisual } from "../components/home/HeroVisual";
+import { TeamAvatar } from "../components/home/TeamAvatar";
 import {
   ChartIcon,
   SlidersIcon,
@@ -13,7 +14,6 @@ import {
 import { ButtonLink } from "../components/ui/primitives";
 import { BRAND_NAME, TAGLINE } from "../config/site";
 import { TEAM } from "../config/team";
-import { initials } from "../lib/misc";
 
 const STEPS = [
   { icon: UploadIcon, title: "Upload a dataset", text: "Drop in a CSV or start from Iris, Wine or Diabetes. The file is validated and profiled on the server." },
@@ -163,17 +163,11 @@ export default function HomePage() {
           {TEAM.map((member) => (
             <li
               key={member.rollNumber}
-              className="rounded-xl border border-navy-600 bg-navy-800 p-6 text-center"
+              className="rounded-xl border border-navy-600 bg-navy-800 px-6 py-8 text-center"
             >
-              <span
-                aria-hidden="true"
-                className="mx-auto flex size-16 items-center justify-center rounded-full bg-teal-400/15 text-xl font-semibold text-teal-200 ring-1 ring-teal-400/30"
-              >
-                {initials(member.name)}
-              </span>
-              <h3 className="mt-4 font-semibold text-ink">{member.name}</h3>
+              <TeamAvatar member={member} />
+              <h3 className="mt-5 font-semibold text-ink">{member.name}</h3>
               <p className="mt-1 text-sm text-ink-muted">{member.rollNumber}</p>
-              <p className="mt-2 text-sm text-teal-200">{member.role}</p>
             </li>
           ))}
         </ul>

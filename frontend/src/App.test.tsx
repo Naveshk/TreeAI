@@ -38,11 +38,28 @@ describe("Home page", () => {
     for (const member of TEAM) {
       expect(within(team).getByText(member.name)).toBeInTheDocument();
       expect(within(team).getByText(member.rollNumber)).toBeInTheDocument();
-      expect(within(team).getByText(member.role)).toBeInTheDocument();
+    }
+    // Confirmed photo-to-member mapping, in order.
+    const cards = within(team).getAllByRole("listitem");
+    const expected = [
+      ["Nave", "Roll No. 12345", "/images/team/navesh.jpeg"],
+      ["Mohan", "Roll No. 12445", "/images/team/mohan1.jpeg"],
+      ["Yash", "Roll No. 5432", "/images/team/mohan.jpeg"],
+    ];
+    expect(cards).toHaveLength(expected.length);
+    expected.forEach(([name, roll, src], i) => {
+      const card = cards[i]!;
+      expect(within(card).getByRole("heading", { name })).toBeInTheDocument();
+      expect(within(card).getByText(roll!)).toBeInTheDocument();
+      expect(within(card).getByRole("img", { name: `Photo of ${name}` })).toHaveAttribute("src", src);
+    });
+    // Cards show only photo/initials, name and roll number: no role or designation text.
+    for (const card of within(team).getAllByRole("listitem")) {
+      expect(card.querySelectorAll("p")).toHaveLength(1);
     }
     // Initials are generated from each name; members may share initials, so count per value.
     const expectedInitials = new Map<string, number>();
-    for (const member of TEAM) {
+    for (const member of TEAM.filter((m) => !m.photo)) {
       const value = initials(member.name);
       expectedInitials.set(value, (expectedInitials.get(value) ?? 0) + 1);
     }
